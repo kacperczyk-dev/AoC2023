@@ -11,7 +11,22 @@ fun main() {
     }
 
     fun part2(input: List<String>): Int {
-        return input.size
+        val spelledDigits = mapOf("zero" to "0", "one" to "1", "two" to "2", "three" to "3", "four" to "4", "five" to "5", "six" to "6", "seven" to "7", "eight" to "8", "nine" to "9")
+        val r = "\\d|(?=(zero|one|two|three|four|five|six|seven|eight|nine))".toRegex()
+        val numbers = input.map {
+            val firstNum = r.findAll(it).first().groupValues.joinToString("")
+            val lastNum = r.findAll(it).last().groupValues.joinToString("")
+            val fn = if(spelledDigits.containsKey(firstNum)) {
+                spelledDigits[firstNum]
+            } else firstNum
+            val ln = if(spelledDigits.containsKey(lastNum)) {
+                spelledDigits[lastNum]
+            } else lastNum
+            val x = "$fn$ln".toInt()
+            x
+
+        }
+        return numbers.sum()
     }
 
     // test if implementation meets criteria from the description, like:
