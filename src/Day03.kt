@@ -1,12 +1,12 @@
 
 fun main() {
+    val r = "\\d+".toRegex()
 
     fun part1(input: List<String>): Int {
         val specialChars = listOf("@", "#", "$", "%", "&", "*", "-", "=", "+", "/")
-        val r = "\\d+".toRegex()
         val noOfLines = input.size
         val lineLength = input[0].length
-        val x= input.flatMapIndexed { i, currLine ->
+        val partNumbers = input.flatMapIndexed { i, currLine ->
                 val prevLine = if(i != 0) input[i - 1] else null
                 val nextLine = if(i < noOfLines - 1) input[i + 1] else null
                 val numbers = r.findAll(currLine)
@@ -25,12 +25,33 @@ fun main() {
                     } else null
                 }.filterNotNull()
         }
-        return x.sum()
+        return partNumbers.sum()
     }
 
 
     fun part2(input: List<String>): Int {
-       return 1
+        val rStar = "\\*".toRegex()
+        val gearsPerLine: MutableMap<Int, List<MatchResult>> = mutableMapOf()
+        val numbersPerLine: MutableMap<Int, List<MatchResult>> = mutableMapOf()
+        input.forEachIndexed { i, line ->
+            numbersPerLine[i] = r.findAll(line).toList()
+            gearsPerLine[i] = rStar.findAll(line).toList()
+        }
+        val gearRatios = gearsPerLine.flatMap { (lineNo, gears) ->
+            gears.map { gear ->
+                val i = gear.range.first
+                val numbersOnSameLine = numbersPerLine[lineNo]
+                val numbersOnPrevLine = numbersPerLine[lineNo - 1]
+                val numbersOnNextLine = numbersPerLine[lineNo + 1]
+                val numLeft = numbersOnSameLine?.firstOrNull { number -> number.range.last == i - 1 }?.value?.toInt()
+                val numRight = numbersOnSameLine?.firstOrNull { number -> number.range.first == i + 1 }?.value?.toInt()
+                val numAbove = numbersOnPrevLine?.filter { number -> (number.range.first <= i && number.range.last >= i) || number.range.last == i - 1 || number.range.first == i + 1 }?.map { it.value.toInt() } ?: emptyList()
+                val numBelow = numbersOnNextLine?.filter { number -> (number.range.first <= i && number.range.last >= i) || number.range.last == i - 1 || number.range.first == i + 1 }?.map { it.value.toInt() } ?: emptyList()
+                val potentialNums = listOfNotNull(numLeft, numRight) + numAbove + numBelow
+                if(potentialNums.size == 2) potentialNums.first() * potentialNums.last() else 0
+            }
+        }
+       return gearRatios.sum()
     }
 
     // test if implementation meets criteria from the description, like:
