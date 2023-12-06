@@ -1,5 +1,5 @@
-import java.util.*
 import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.system.measureTimeMillis
 
 fun main() {
@@ -44,47 +44,28 @@ fun main() {
         return locations.min()
     }
 
-    fun doRangesOverlap(range1: LongRange, range2: LongRange): Boolean {
-        return range1.first <= range2.last && range2.first <= range1.last
-    }
-
-    fun processReverse(maps: List<ConversionMap>, order: Int): List<ConversionRange> {
-         return maps[order].ranges.flatMap { currRange ->
-            maps[order - 1].ranges.mapNotNull { prevRange ->
-                if (doRangesOverlap(currRange.source until currRange.source + currRange.range, prevRange.dest until prevRange.dest + prevRange.range)) {
-                    if (order == 1) return listOf(prevRange)
-                    else processReverse(maps, order - 1)
-                } else null
-            }.flatten()
-        }
-    }
-
-    fun processReverse2(maps: List<ConversionMap>, order: Int) {
-        maps[order].ranges.forEach { currRange ->
-            maps[order - 1].ranges.forEach { prevRange ->
-
-            }
-        }
-    }
-
     fun part2(input: List<String>): Long {
-        var min: Long = -1L
+        var min = AtomicLong(-1L)
         val timeTaken = measureTimeMillis {
-            val maps = createMaps(input.drop(2))
-            val seedRanges = processReverse(maps, 6)
-            seedRanges.forEach { seedRange ->
-                (seedRange.source until seedRange.source + seedRange.range).forEach { seed ->
-                    val currVal = processConversion(seed, maps, 0)
-                    if (min == -1L || currVal < min) {
-                        min = currVal
-                        println("Seed: $seed")
-                        println("Min : $min")
+            runBlocking {
+                val x = input[0].drop(6).trim().split(" ").map { it.toLong() }
+                val seedRanges = x.mapIndexedNotNull { i, v -> if(i % 2 == 0 && i < x.size - 1) v until v + x[i+1] else null}
+                val maps = createMaps(input.drop(2))
+                seedRanges.forEach { range ->
+                    async {
+                        range.forEach { seed ->
+                            val loc = processConversion(seed, maps, 0)
+                            if(min.get() == -1L || loc < min.get()) {
+                                min.set(loc)
+                                println("Seed: $seed, Location: $min")
+                            }
+                        }
                     }
                 }
             }
         }
         println("Time taken: ${timeTaken / 1000} s")
-        return min // 616794786
+        return min.get() // correct! 79004094, takes ~ 22 minutes (1343 seconds)
     }
 
 
