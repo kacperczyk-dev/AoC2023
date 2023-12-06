@@ -48,37 +48,45 @@ fun main() {
         return range1.first <= range2.last && range2.first <= range1.last
     }
 
-    fun processReverse(maps: List<ConversionMap>, order: Int): ConversionRange? {
-        for (currRange in maps[order].ranges) {
-            for (prevRange in maps[order - 1].ranges) {
+    fun processReverse(maps: List<ConversionMap>, order: Int): List<ConversionRange> {
+         return maps[order].ranges.flatMap { currRange ->
+            maps[order - 1].ranges.mapNotNull { prevRange ->
                 if (doRangesOverlap(currRange.source until currRange.source + currRange.range, prevRange.dest until prevRange.dest + prevRange.range)) {
-                    if (order == 1) return prevRange
-                    return processReverse(maps, order - 1)
-                }
+                    if (order == 1) return listOf(prevRange)
+                    else processReverse(maps, order - 1)
+                } else null
+            }.flatten()
+        }
+    }
+
+    fun processReverse2(maps: List<ConversionMap>, order: Int) {
+        maps[order].ranges.forEach { currRange ->
+            maps[order - 1].ranges.forEach { prevRange ->
+
             }
         }
-        return null
     }
 
     fun part2(input: List<String>): Long {
         var min: Long = -1L
         val timeTaken = measureTimeMillis {
-            val x = input[0].drop(6).trim().split(" ").map { it.toLong() }
             val maps = createMaps(input.drop(2))
-            val humToLoc = maps[6]
-            val seedRange = processReverse(maps, 6)!!
-            println(seedRange)
-            (seedRange.source until seedRange.source + seedRange.range).forEach { seed ->
-                println(seed)
-                val currVal = processConversion(seed, maps, 0)
-                if (min == -1L || currVal < min) {
-                    min = currVal
+            val seedRanges = processReverse(maps, 6)
+            seedRanges.forEach { seedRange ->
+                (seedRange.source until seedRange.source + seedRange.range).forEach { seed ->
+                    val currVal = processConversion(seed, maps, 0)
+                    if (min == -1L || currVal < min) {
+                        min = currVal
+                        println("Seed: $seed")
+                        println("Min : $min")
+                    }
                 }
             }
         }
-
         println("Time taken: ${timeTaken / 1000} s")
         return min // 616794786
+    }
+
 
         // test if implementation meets criteria from the description, like:
 //    val testInput = readInput("Day01_test")
