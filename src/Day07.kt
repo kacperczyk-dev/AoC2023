@@ -12,23 +12,21 @@ enum class HandType(val strength: Int) {
 
 fun main() {
 
-    data class Hand(val cards: List<Char>, val bid: Int, val type: HandType) : Comparable<Hand> {
-        val handStrength: Int = type.strength * calcCardsStrength()
+    fun mapCardToValue(card: Char, jokerRule: Boolean): Int {
+        return when (card) {
+            'A' -> 99
+            'K' -> 98
+            'Q' -> 97
+            'J' -> if(jokerRule) 1 else 96
+            'T' -> 85
+            else -> Character.getNumericValue(card)
+        }
+    }
 
+    data class Hand(val cards: List<Char>, val bid: Int, val type: HandType, val jokerRule: Boolean = false) : Comparable<Hand> {
         fun calcCardsStrength(): Int {
             return cards.sumOf { card ->
-                mapCardToValue(card)
-            }
-        }
-
-        fun mapCardToValue(card: Char): Int {
-            return when (card) {
-                'A' -> 99
-                'K' -> 98
-                'Q' -> 97
-                'J' -> 96
-                'T' -> 85
-                else -> Character.getNumericValue(card)
+                mapCardToValue(card, jokerRule)
             }
         }
 
@@ -38,7 +36,7 @@ fun main() {
                 else -> {
                     var res = 0
                     for (i in this.cards.indices) {
-                        res = mapCardToValue(this.cards[i]).compareTo(mapCardToValue(other.cards[i]))
+                        res = mapCardToValue(this.cards[i], jokerRule).compareTo(mapCardToValue(other.cards[i], jokerRule))
                         if (res != 0) break
                     }
                     res
@@ -47,11 +45,20 @@ fun main() {
         }
     }
 
-    fun parseHands(input: List<String>): List<Hand> {
+    fun parseHands(input: List<String>, jokerRule: Boolean = false): List<Hand> {
         return input.map { hand ->
             val (cards, bid) = hand.trim().split(" ")
             val cardsList = cards.toList()
-            val cardCount = cardsList.groupingBy { it }.eachCount().values.toList()
+            val cardCount = if(jokerRule) {
+                cardsList.filterNot {it == 'J'}.groupingBy { it }.eachCount().values.toMutableList()
+            } else {
+                cardsList.groupingBy { it }.eachCount().values.toMutableList()
+            }
+            if(jokerRule) {
+                val max = cardCount.maxOrNull()
+                val indexOfMax = if(max != null) cardCount.indexOf(max) else 0
+                if(cardCount.isEmpty()) cardCount.add(5) else cardCount[indexOfMax] = cardCount[indexOfMax] + (5 - cardCount.sum())
+            }
             val type = when(cardCount.size) {
                 1 -> HandType.FIVE_OF_A_KIND
                 2 -> when {
@@ -65,7 +72,7 @@ fun main() {
                 4 -> HandType.ONE_PAIR
                 else -> HandType.HIGH_CARD
             }
-            Hand(cardsList, bid.toInt(), type)
+            Hand(cardsList, bid.toInt(), type, jokerRule)
         }
     }
 
@@ -78,7 +85,10 @@ fun main() {
 
 
     fun part2(input: List<String>): Int {
-        return 1
+        val hands = parseHands(input, true).sorted()
+        return hands.mapIndexed { i, hand->
+            (i + 1) * hand.bid
+        }.sum()
     }
 
     // test if implementation meets criteria from the description, like:
