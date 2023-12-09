@@ -1,4 +1,3 @@
-import kotlin.math.abs
 import kotlin.system.measureTimeMillis
 
 fun main() {
@@ -6,10 +5,10 @@ fun main() {
     data class Node(val name: String, var left: Node? = null, var right: Node? = null)
 
     fun parseInput(input: List<String>): List<Node> {
-        val nodes = input.drop(2).map { line ->
+        val nodes = input.drop(2).associate { line ->
             val name = line.take(3)
             name to Node(name)
-        }.toMap()
+        }
         nodes.forEach { (name, node) ->
             val line = input.first { line -> line.take(3) == name}
             node.left = nodes[line.drop(7).take(3)]!!
@@ -33,47 +32,41 @@ fun main() {
         return traverseGraph(root, directions, directions.toList(), 0)
     }
 
-    // Function to calculate GCD using Euclidean algorithm
-    fun calculateGCD(a: Int, b: Int): Int {
-        var num1 = abs(a)
-        var num2 = abs(b)
-        while (num2 != 0) {
-            val temp = num2
-            num2 = num1 % num2
-            num1 = temp
-        }
-        return num1
-    }
 
-    // Function to calculate LCM
-    fun calculateLCM(a: Int, b: Int): Int {
-        return if (a == 0 || b == 0) 0 else abs(a * b) / calculateGCD(a, b)
-    }
-
-    tailrec fun traverseGraph(node: Node, directions: String, nextSteps: List<Char>, counter: Int, e: Int): Int {
-        var ee = e
-        if (node.name.endsWith('Z')) {
-            ee += 1
-            if(ee == 2) {
-                return counter
+    fun traverseGraph(node: Node, directions: String): Long {
+        var counter = 0L
+        var current: Node = node
+        while (!current.name.endsWith('Z')) {
+            current = when (directions[(counter % directions.length).toInt()]) {
+                'L' -> current.left!!
+                else -> current.right!!
             }
+            counter++
         }
-        val steps = nextSteps.drop(1).ifEmpty { directions.toList() }
-        return when(nextSteps[0]) {
-            'L' -> traverseGraph(node.left!!, directions, steps, counter + 1, ee)
-            else -> traverseGraph(node.right!!, directions, steps, counter + 1, ee)
-        }
+        return counter
     }
 
-    fun part2(input: List<String>): Int {
-        var res = -1
+    fun gcd(a: Long, b: Long): Long {
+        return if (b == 0L) a else gcd(b, a % b)
+    }
+
+    fun lcm(a: Long, b: Long): Long {
+        return a / gcd(a, b) * b // Be careful with large numbers due to potential overflow
+    }
+
+    fun lcmOfList(numbers: List<Long>): Long {
+        return numbers.reduce { acc, num -> lcm(acc, num) }
+    }
+
+    fun part2(input: List<String>): Long {
+        var res = -1L
         val timeTaken = measureTimeMillis {
             val directions = input[0]
             val roots = parseInput(input)
             val results = roots.map { root ->
-                traverseGraph(root, directions, directions.toList(), 0, 0)
+                traverseGraph(root, directions)
             }
-            res = results.reduce { acc, num -> calculateLCM(acc, num) }
+            res = lcmOfList(results)
         }
         println("Time taken: ${timeTaken / 1000} s")
         return res
